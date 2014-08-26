@@ -282,18 +282,32 @@ class RobotActionExecutor():
             name += "(%s, " % ", ".join([str(a) for a in args[1:]])
             name += "%s)" % ", ".join(["%s=%s" % (str(k), str(v)) for k, v in kwargs.items()])
 
-
-        if len(self.futures) > MAX_FUTURES:
+        running_futures = 0
+        for future in self.futures :
+            if future.acquired_resource :
+                running_futures +=1
+        if running_futures > MAX_FUTURES:
+            #for i in self.futures:
+             #   print i.actionname
             raise RuntimeError("You have more than %s actions running in parallel! Likely a bug in your application logic!" % MAX_FUTURES)
 
         f = RobotAction(name)
 
         initialized = threading.Event()
 
+
         t = RobotActionThread(f, initialized, fn, args, kwargs)
         f.set_thread(weakref.ref(t))
 
+
+        current_action = self.get_current_action()
+        if current_action:
+            f.set_parent(weakref.ref(current_action))
+            current_action.add_subaction(weakref.ref(f))
+
+
         t.start()
+
         while not initialized.is_set():
             # waits for the thread to actually start
             pass
@@ -301,17 +315,11 @@ class RobotActionExecutor():
         with self.futures_lock:
             self.futures.append(f)
 
-        current_action = self.get_current_action()
-        if current_action:
-            f.set_parent(weakref.ref(current_action))
-            current_action.add_subaction(weakref.ref(f))
-
         return f
 
     def get_current_action(self):
         """Returns the RobotAction linked to the current thread.
         """
-
         thread_id = threading.current_thread().ident
 
         with self.futures_lock:
