@@ -117,13 +117,20 @@ class PoseManager(object):
         if isinstance(pose, dict):
             return self.normalizedict(pose)
         
-        raise RuntimeError("normalize() takes either lists or dict as input.")
+        raise RuntimeError("normalize() takes either lists or dict as input. Got %s." % pose)
     
     def __getitem__(self, raw):
         """ Implements the PoseManager[] operator as an alias for PoseManager.get()
         """
         return self.get(raw)
-        
+    
+    def __contains__(self, raw):
+        try:
+            self.get(raw)
+            return True
+        except UnknownFrameError:
+            return False
+
     def get(self, raw):
         """ takes a loosly defined 'pose' as input and returns a properly formatted
         and normalized pose.
