@@ -17,7 +17,7 @@ def action(fn):
 
     # wrapper for the original function that locks/unlocks shared
     # resources
-    def lockawarefn(future,actionname,*args, **kwargs):
+    def lockawarefn(future, actionname,*args, **kwargs):
 
         try:
             # we acquire resources *within the future thread* that
@@ -44,7 +44,7 @@ def action(fn):
             return None
  
         try:
-            future.set_acquired()
+            future.acquired_resource = True
             threading.current_thread().name = "Robot Action %s (running)" % (actionname) #fn.__name__
             logger.debug("Starting action <%s> now." % actionname) #fn.__name__
             try:
